@@ -1,6 +1,6 @@
 ## About the projects
 
-The projects was made during the 9th semester on Aalborg University.
+The projects was made during the 9th semester on Aalborg University. Both projects are exported from ipynb files to pdfs are available for reading.
 
 ### UML & SML project
 
