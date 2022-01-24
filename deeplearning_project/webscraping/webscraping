@@ -1,0 +1,112 @@
+import requests
+import pandas as pd
+from scrapy import Selector
+import re
+
+ #35.000
+
+urlDf = pd.read_csv("C:/Users/stibo/Documents/GitHub/M2Exam/url_list.csv")
+
+url = "https://www.trustpilot.com/review/www.postnord.dk?languages=da"
+r = requests.get(url)
+print(r)
+content = r.content
+sel = Selector(text=content)
+
+#paths
+namePath = '(//div[@class="consumer-information__name"])[{}]/text()'
+linkPath = '(//a[@class="consumer-information"])[{}]//@href'
+ratingPath = '(//div[@class="star-rating star-rating--medium"])[{}]//img//@alt'
+reviewCountPath = '(//div[@class="consumer-information__review-count"])[{}]//span/text()'
+headerPath = '(//h2[@class="review-content__title"])[{}]//a/text()'
+textPath = '(//div[@class="review-content__body"])[{}]//p/text()'
+urlPath = '//nav[@class="pagination-container AjaxPager"]//a[@class="button button--primary next-page"]//@href'
+countryPath = '(//div[@class="consumer-information__location"])[{}]//span/text()'
+datePath = '(//div[@class="review-content-header"])[{}]/div[@class="review-content-header__dates"]/script/text()'
+
+#libraries and list
+dfDict = {"name":[], "profileLink":[], "date":[], "rating":[], "reviewCount":[], "header":[], "text":[]}
+
+
+# countx = 0 
+
+# for i in range(35000):
+#     try:
+#         request = requests.get(url)
+#         cont = request.content
+#         sel = Selector(text=cont)
+#         urlList = sel.xpath(urlPath).extract()
+#         url = "https://www.trustpilot.com/" + str(urlList[0])
+#         urlDict["link"].append(url)
+#         countx = countx + 1
+#         print(countx)
+#     except:
+#         break
+
+count = 0
+
+for i in urlDf["link"][10001:20000]:
+    request = requests.get(i)
+    print(request)
+    cont = request.content
+    sel = Selector(text=cont)
+    u = 1
+    while u <= 20:
+        #paths
+        namePathI = namePath.format(u)
+        linkPathI = linkPath.format(u)
+        ratingPathI = ratingPath.format(u)
+        reviewCountPathI = reviewCountPath.format(u)
+        headerPathI = headerPath.format(u)
+        textPathI = textPath.format(u)
+        name = sel.xpath(namePathI).extract()
+        name1 = name[0].strip().replace("\n", "")
+        dfDict["name"].append(name1)
+        link = sel.xpath(linkPathI).extract()
+        link = link[0]
+        dfDict["profileLink"].append(link)
+        datePath = datePath.format(1)
+        date = sel.xpath(datePath).extract()
+        date = re.sub("[^0-9-]", "", date[0])
+        dfDict["date"].append(date)
+        rating = sel.xpath(ratingPathI).extract()
+        rating = rating[0]
+        rating = int(rating[0])
+        dfDict["rating"].append(rating)
+        reviewCount = sel.xpath(reviewCountPathI).extract()
+        reviewCount = reviewCount[0]
+        reviewCount = reviewCount.replace(" reviews", "")
+        reviewCount = reviewCount.replace(" review", "")
+        reviewCount = int(reviewCount)
+        dfDict["reviewCount"].append(reviewCount)
+        header = sel.xpath(headerPathI).extract()
+        header = str(header[0].strip())
+        dfDict["header"].append(header)
+        text = sel.xpath(textPathI).extract()
+        if text:
+            text = text[0].strip().replace("\n", "")
+            dfDict["text"].append(text)
+        else:
+            text = ''
+            dfDict["text"].append(text)
+        # print(name1)
+        # print(rating)
+        # print(link)
+        # print(reviewCount)
+        # print(header)
+        # print(text)
+        u = u+1
+    count = count + 1
+    print(count)
+
+try:
+    df = pd.DataFrame(dfDict)
+    print(df.head())
+    print(df.shape)
+    print(df.iloc[0])
+
+    df.to_csv(path_or_buf='trustpilot_reviewsTest2.csv')
+except:
+    "can't create df"
+
+
