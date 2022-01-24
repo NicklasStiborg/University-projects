@@ -1,0 +1,66 @@
+import pandas as pd
+from scrapy import Selector
+import requests
+import math
+
+df = pd.read_csv('https://raw.githubusercontent.com/NicklasStiborg/M2Exam/main/trustpilot_reviews_200k_1.csv?token=AOUWZYISPK3RRNF7JD5ZWS3BQ22HK')
+
+#profile webscraping
+profileUrl = "https://www.trustpilot.com//users/4ba4d97500006400010274c9"
+
+count = 1
+
+companyPath = '//div[@class="review-list"]//div[@class="company-name"]//a//text()'
+nextPagePath = '//a[@class="pagination-page next-page"]//@href'
+countPath = '//div[@class="consumer-information__review-count"]//span//text()'
+namePath = '//div[@class="user-summary-info"]//h1//text()'
+
+profileDict = {"name": [],"profileLink": [], "reviewList": []}
+
+for i in df['profileLink'][:1000]:
+    print(count)
+    url = 'https://www.trustpilot.com/' + str(i)
+    request = requests.get(url)
+    print(request)
+    cont = request.content
+    sel = Selector(text=cont)
+
+    #pagelink add 
+    profileDict["profileLink"].append(i)
+    
+    #name add
+    name = sel.xpath(namePath).extract()
+    profileDict["name"].append(name[0].strip())
+
+    #get review count and amount of pages
+    reviewCount = sel.xpath(countPath).extract()
+    reviewCount = str(reviewCount[0])
+    reviewCount = reviewCount.replace(" reviews", "")
+    reviewCount = reviewCount.replace(" review", "")
+    reviewCount = int(reviewCount)
+    pages = reviewCount / 20
+    pages = math.ceil(pages)
+    pages = pages-1
+
+
+    reviewList = []
+    companyName = sel.xpath(companyPath).extract()
+    reviewList.extend(companyName)
+    nextPage = sel.xpath(nextPagePath).extract()
+
+    for i in range(pages):
+        url = "https://www.trustpilot.com" + str(nextPage[0])
+        request = requests.get(url)
+        cont = request.content
+        sel = Selector(text=cont)
+        companyName = sel.xpath(companyPath).extract()
+        reviewList.extend(companyName)
+        nextPage = sel.xpath(nextPagePath).extract()
+    
+    profileDict["reviewList"].append(reviewList)
+    count +=1
+
+newdf = pd.DataFrame(profileDict)
+
+
+newdf.to_csv(path_or_buf="profiles_reviews_200k_1.csv")
